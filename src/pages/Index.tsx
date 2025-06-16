@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ChatInterface from '../components/ChatInterface';
 import DataVisualization from '../components/DataVisualization';
@@ -9,7 +8,7 @@ const Index = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      text: "Hello! I'm your data assistant. I can help you sort, filter, highlight, and group your data. Try commands like 'sort by name', 'filter status active', 'highlight John', or 'group by department'.",
+      text: "Hello! I'm your data assistant. I can help you sort, filter, highlight, and group your data. Try commands like 'sort by name', 'filter status active', 'highlight John', or 'group by department'. I'll auto-correct common typos and variations!",
       sender: 'bot',
       timestamp: new Date()
     }
@@ -21,65 +20,138 @@ const Index = () => {
   const [groupConfig, setGroupConfig] = useState<GroupConfig | null>(null);
   const [highlightText, setHighlightText] = useState<string>('');
 
+  // Auto-correction mappings
+  const commandCorrections = {
+    // Sort variations
+    'sort': ['srot', 'sorrt', 'sotr', 'stort'],
+    'order': ['ordr', 'oder', 'ordder'],
+    'arrange': ['arange', 'arrage'],
+    
+    // Filter variations
+    'filter': ['filtr', 'filtter', 'fliter', 'fiter'],
+    'search': ['serch', 'searh', 'seach'],
+    'find': ['fnd', 'fin'],
+    
+    // Highlight variations
+    'highlight': ['hilite', 'hilight', 'highlght', 'highligt'],
+    'mark': ['makr', 'mrak'],
+    
+    // Group variations
+    'group': ['grp', 'gropu', 'grup'],
+    'category': ['categry', 'catagory', 'catgory'],
+    
+    // Clear variations
+    'clear': ['cler', 'clr', 'claer'],
+    'reset': ['rese', 'rst', 'resset'],
+    'remove': ['remov', 'rmv'],
+    
+    // Field name corrections
+    'name': ['nam', 'nme', 'names'],
+    'email': ['emai', 'mail', 'emails'],
+    'department': ['dept', 'dep', 'depart', 'departmnt'],
+    'status': ['stat', 'staus', 'sttus'],
+    'salary': ['sal', 'salar', 'salry'],
+    
+    // Direction corrections
+    'ascending': ['asc', 'acending', 'asending'],
+    'descending': ['desc', 'desending', 'decending'],
+    'active': ['activ', 'actve'],
+    'inactive': ['inactiv', 'inactve']
+  };
+
+  const autoCorrectCommand = (command: string): { corrected: string; corrections: string[] } => {
+    let correctedCommand = command.toLowerCase();
+    const appliedCorrections: string[] = [];
+
+    // Apply corrections
+    Object.entries(commandCorrections).forEach(([correct, variations]) => {
+      variations.forEach(variation => {
+        const regex = new RegExp(`\\b${variation}\\b`, 'gi');
+        if (regex.test(correctedCommand)) {
+          correctedCommand = correctedCommand.replace(regex, correct);
+          appliedCorrections.push(`"${variation}" → "${correct}"`);
+        }
+      });
+    });
+
+    return { corrected: correctedCommand, corrections: appliedCorrections };
+  };
+
   const processCommand = (command: string) => {
-    const lowerCommand = command.toLowerCase();
+    const { corrected: correctedCommand, corrections } = autoCorrectCommand(command);
+    const lowerCommand = correctedCommand;
+    
+    let correctionMessage = '';
+    if (corrections.length > 0) {
+      correctionMessage = `✓ Auto-corrected: ${corrections.join(', ')}\n\n`;
+    }
     
     // Sort commands
-    if (lowerCommand.includes('sort by')) {
-      const field = lowerCommand.split('sort by ')[1]?.split(' ')[0];
+    if (lowerCommand.includes('sort by') || lowerCommand.includes('order by') || lowerCommand.includes('arrange by')) {
+      const sortMatch = lowerCommand.match(/(?:sort|order|arrange) by (\w+)/);
+      const field = sortMatch?.[1];
       const direction = lowerCommand.includes('desc') || lowerCommand.includes('descending') ? 'desc' : 'asc';
       
       if (field) {
         setSortConfig({ field: field as keyof DataItem, direction });
-        return `Sorted data by ${field} in ${direction}ending order.`;
+        return `${correctionMessage}Sorted data by ${field} in ${direction}ending order.`;
       }
     }
     
     // Filter commands
-    if (lowerCommand.includes('filter')) {
-      const parts = lowerCommand.split('filter ')[1];
-      if (parts) {
-        const [field, value] = parts.split(' ');
-        if (field && value) {
-          setFilters(prev => ({ ...prev, [field]: value }));
-          return `Filtered data where ${field} contains "${value}".`;
-        }
+    if (lowerCommand.includes('filter') || lowerCommand.includes('search') || lowerCommand.includes('find')) {
+      const filterMatch = lowerCommand.match(/(?:filter|search|find) (\w+) (\w+)/);
+      if (filterMatch) {
+        const [, field, value] = filterMatch;
+        setFilters(prev => ({ ...prev, [field]: value }));
+        return `${correctionMessage}Filtered data where ${field} contains "${value}".`;
       }
     }
     
     // Highlight commands
-    if (lowerCommand.includes('highlight')) {
-      const text = lowerCommand.split('highlight ')[1];
+    if (lowerCommand.includes('highlight') || lowerCommand.includes('mark')) {
+      const highlightMatch = lowerCommand.match(/(?:highlight|mark) (.+)/);
+      const text = highlightMatch?.[1];
       if (text) {
         setHighlightText(text);
-        return `Highlighting text: "${text}".`;
+        return `${correctionMessage}Highlighting text: "${text}".`;
       }
     }
     
     // Group commands
-    if (lowerCommand.includes('group by')) {
-      const field = lowerCommand.split('group by ')[1]?.split(' ')[0];
+    if (lowerCommand.includes('group by') || lowerCommand.includes('category by')) {
+      const groupMatch = lowerCommand.match(/(?:group|category) by (\w+)/);
+      const field = groupMatch?.[1];
       if (field) {
         setGroupConfig({ field: field as keyof DataItem });
-        return `Grouped data by ${field}.`;
+        return `${correctionMessage}Grouped data by ${field}.`;
       }
     }
     
     // Clear commands
-    if (lowerCommand.includes('clear') || lowerCommand.includes('reset')) {
+    if (lowerCommand.includes('clear') || lowerCommand.includes('reset') || lowerCommand.includes('remove all')) {
       setFilters({});
       setSortConfig(null);
       setGroupConfig(null);
       setHighlightText('');
-      return 'Cleared all filters, sorting, grouping, and highlighting.';
+      return `${correctionMessage}Cleared all filters, sorting, grouping, and highlighting.`;
     }
     
     // Help command
     if (lowerCommand.includes('help')) {
-      return 'Available commands:\n• sort by [field] [asc/desc]\n• filter [field] [value]\n• highlight [text]\n• group by [field]\n• clear/reset - clear all operations\n\nFields available: name, email, department, status, salary';
+      return `${correctionMessage}Available commands:\n• sort by [field] [asc/desc]\n• filter [field] [value]\n• highlight [text]\n• group by [field]\n• clear/reset - clear all operations\n\nFields available: name, email, department, status, salary\n\nI can auto-correct common typos and variations!`;
     }
     
-    return "I didn't understand that command. Type 'help' to see available commands.";
+    // Enhanced error message with suggestions
+    const suggestions = [
+      "Try: 'sort by name'",
+      "Try: 'filter status active'", 
+      "Try: 'highlight john'",
+      "Try: 'group by department'",
+      "Try: 'clear' to reset everything"
+    ];
+    
+    return `${correctionMessage}I didn't understand that command. ${suggestions[Math.floor(Math.random() * suggestions.length)]} or type 'help' to see all available commands.`;
   };
 
   const handleSendMessage = (text: string) => {
@@ -115,7 +187,7 @@ const Index = () => {
             Data Management Chatbot
           </h1>
           <p className="text-gray-600 mt-2">
-            Sort, filter, highlight, and group your data with natural language commands
+            Sort, filter, highlight, and group your data with natural language commands (with auto-correction!)
           </p>
         </header>
         
