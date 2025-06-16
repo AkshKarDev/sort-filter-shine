@@ -67,7 +67,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
     }, {} as Record<string, DataItem[]>);
   }, [processedData, groupConfig]);
 
-  const highlightText = (text: string, highlight: string) => {
+  const renderHighlightedText = (text: string, highlight: string) => {
     if (!highlight) return text;
     
     const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
@@ -187,20 +187,20 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
                   {items.map((item) => (
                     <tr key={item.id} className="hover:bg-blue-50 transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {highlightText(item.name, highlightText)}
+                        {renderHighlightedText(item.name, highlightText)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {highlightText(item.email, highlightText)}
+                        {renderHighlightedText(item.email, highlightText)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {highlightText(item.department, highlightText)}
+                        {renderHighlightedText(item.department, highlightText)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <Badge 
                           variant={item.status === 'Active' ? 'default' : 'secondary'}
                           className={item.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
                         >
-                          {highlightText(item.status, highlightText)}
+                          {renderHighlightedText(item.status, highlightText)}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">
